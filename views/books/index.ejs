@@ -20,6 +20,11 @@
     <title>home</title>
     <link rel="stylesheet" type="text/css" href="css/style.css">
     <style>
+        #example {
+            table-layout: fixed !important;
+            word-wrap: break-word;
+        }
+
         * {
             padding: 0;
             margin: 0;
@@ -678,6 +683,7 @@
                 <a href="/books/about">About Us</a>
                 <a href="/books/contactdetail">Contact Us</a>
                 <a href="/books/login">Login</a>
+                <a href="/books/historyLogin">Your History</a>
 
             </li>
         </ul>
@@ -707,8 +713,7 @@
     <!-- <div class="card-body"> -->
     <div>
         <% if(data.length) { %>
-            <table id="example" class="table table-striped table-bordered table-hover table-sm"
-                style="width:100%;color: #e6dcdc;">
+            <table id="example" class="table table-striped table-bordered table-sm" style="width:80%;color: #e6dcdc;">
                 <thead class="thead-dark">
                     <tr>
                         <th scope="col">#</th>
@@ -721,8 +726,8 @@
                         <th scope="col">Issue Date</th>
                         <th scope="col">Expiry Date</th>
                         <th scope="col">Notes</th>
-                        <% if (flag !=0) { %>
-                            <th width="200px">Action</th>
+                        <% if (flag==0 || flag==1) { %>
+                            <th style='width: 5%;'>Action</th>
                             <% } %>
                     </tr>
                 </thead>
@@ -760,13 +765,20 @@
                             <td>
                                 <%= data[i].details%>
                             </td>
-                            <% if (flag !=0) { %>
+                            <% if (flag==1) { %>
                                 <td>
                                     <!-- <a class="btn btn-success edit" href="../books/edit/<%=data[i].name%>">Edit</a> -->
                                     <a class="btn btn-danger delete" onclick="return alert('Are You sure?')"
                                         href="../books/delete/<%=data[i].name%>">Delete</a>
                                 </td>
                                 <% } %>
+                                    <% if (flag==0) { %>
+                                        <td>
+                                            <!-- <a class="btn btn-success edit" href="../books/edit/<%=data[i].name%>">Edit</a> -->
+                                            <a class="btn btn-danger delete" onclick="return alert('Are You sure?')"
+                                                href="../books/report%>">Report</a>
+                                        </td>
+                                        <% } %>
                         </tr>
                         <% } %>
                 </tbody>

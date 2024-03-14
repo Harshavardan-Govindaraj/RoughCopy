@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var dbConn = require('../lib/db');
-
+const nodemailer = require("nodemailer");
 const session = require('express-session');
 // display books page
 router.get('/', function (req, res, next) {
@@ -19,7 +19,24 @@ router.get('/', function (req, res, next) {
         }
     });
 });
+router.get('/history', function (req, res, next) {
 
+    console.log(global.mail);
+    dbConn.query(`SELECT * FROM food where email= '${global.mail}'`, function (err, rows) {
+        let flag = req.session.flag;
+        console.log(rows.length);
+        if (err) {
+            req.flash('error', err);
+            // render to views/books/index.ejs
+
+            res.render('books/history', { data: '', flag: '' });
+        } else {
+            // render to views/books/index.ejs
+            res.render('books/history', { data: rows, flag: flag });
+        }
+    });
+});
+//-------------------------------------------------------------------------------------
 // display add book page
 router.get('/add', function (req, res, next) {
     // render to add.ejs
@@ -31,6 +48,10 @@ router.get('/add', function (req, res, next) {
 router.get('/login', function (req, res, next) {
     // render to add.ejs
     res.render('books/login')
+})
+router.get('/historyLogin', function (req, res, next) {
+    // render to add.ejs
+    res.render('books/historyLogin')
 })
 // router.get('/userRegistration', function (req, res, next) {
 //     // render to add.ejs
@@ -56,33 +77,56 @@ router.post('/login', function (req, res, next) {
             //     res.locals.currentUser = row[0].flag;////
             //     next()
             // })
+
             req.session.flag = rows[0].flag;
             res.redirect('/books/display');
         }
     })
 })
+router.post('/historyLogin', function (req, res, next) {
+    let email = req.body.email;
+    let password = req.body.password;
+
+    dbConn.query(`SELECT * FROM login WHERE email = '${email}' AND password='${password}'`, function (err, rows, fields) {
+        if (err) throw err
+        if (rows.length <= 0) {
+            req.flash('error', 'No history found')
+            res.redirect('/books/historyLogin')
+        }
+        else {
+            // router.use(function (req, res, next) {
+            //     res.locals.currentUser = row[0].flag;////
+            //     next()
+            // })
+            global.mail = email;
+            req.session.flag = rows[0].flag;
+            res.redirect('/books/history');
+        }
+    })
+})
+//-----------------------------------------------------------------------------
 router.get('/contactdetail', function (req, res, next) {
-    // render to add.ejs
+
     res.render('books/contactdetail')
 })
 router.get('/display', function (req, res, next) {
-    // render to add.ejs
+
     res.render('books/display')
 })
 router.get('/ur', function (req, res, next) {
-    // render to add.ejs
+
     res.render('books/ur')
 })
 router.get('/register', function (req, res, next) {
-    // render to add.ejs
+
     res.render('books/register')
 })
 router.get('/about', function (req, res, next) {
-    // render to add.ejs
+
     res.render('books/about')
 })
 
-// add a new book
+// add a new book-------------------------------------------------------------------------------
 router.post('/add', function (req, res, next) {
 
     let name = req.body.myname1;
@@ -144,8 +188,45 @@ router.post('/add', function (req, res, next) {
 
             }
         })
+        dbConn.query(`SELECT * FROM login WHERE city = '${city}' `, function (err, rows, fields) {
+            if (err) throw err
+            if (rows.length > 0) {
+                console.log("row exists");
+                console.log(rows[0].email);
+                console.log("done");
+                const transporter = nodemailer.createTransport(
+                    {
+                        service: 'gmail',
+                        auth: {
+                            user: 'sanjumurugan2002@gmail.com',
+                            pass: 'ddrqhtauyjdawuqy'
+                        }
+
+                    })
+
+                const mailOptions = {
+                    from: "admin",
+                    to: rows[0].email,
+                    subject: 'Food donation update',
+                    text: "Hey there ! Hope you are doing good . There is someone willing to donate food "
+                }
+
+                transporter.sendMail(mailOptions, (error, info) => {
+
+                    if (error) {
+                        console.log(error);
+                        res.send('error');
+                    } else {
+                        console.log('Email sent: ' + info.response);
+                        res.send('success')
+                    }
+
+                })
+            }
+        })
     }
 })
+//------------------------------------------------------------------------------------------
 router.post('/userRegistration', function (req, res, next) {
 
     let name = req.body.name;
@@ -232,8 +313,46 @@ router.get('/edit/(:name)', function (req, res, next) {
         }
     })
 })
+//----------------------------------------------------------------------------------------------------------
+router.get('/report', function (req, res, next) {
 
-// update book data
+    res.render('books/report')
+})
+router.post('/report', function (req, res, next) {
+    console.log(req.body);
+    const transporter = nodemailer.createTransport(
+        {
+            service: 'gmail',
+            auth: {
+                user: 'sanjumurugan2002@gmail.com',
+                pass: 'ddrqhtauyjdawuqy'
+            }
+
+        })
+    console.log('Email sent: ');
+    const mailOptions = {
+        from: req.body.email,
+        to: 'harshavardangovindaraj@gmail.com',
+        subject: `Message from ${req.body.email}: ${req.body.subject}`,
+        text: req.body.message
+    }
+
+    transporter.sendMail(mailOptions, (error, info) => {
+
+        if (error) {
+            console.log(error);
+            res.send('error');
+        } else {
+            console.log('Email sent: ' + info.response);
+            res.send('success')
+        }
+
+    })
+
+})
+//----------------------------------------------------------------------------------------------------
+
+// update book data-----------------------------------------------------------------------------------
 router.post('/update/:name', function (req, res, next) {
     let name = req.params.name;
     let email = req.params.email;
