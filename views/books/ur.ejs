@@ -646,7 +646,7 @@
     </style>
 </head>
 
-<body>
+<body style="background-color: #101010;">
     <div class="register-body">
         <nav>
             <ul class="navbar">
@@ -675,6 +675,12 @@
                         <input type="password" class="form-control" placeholder="Password" name="password">
                         <label>City</label>
                         <input type="text" class="form-control" placeholder="City" name="city">
+                        <input type="number" step="any" name="lat" placeholder="Latitude" id="" required>
+                        <input type="number" step="any" name="log" placeholder="Longitude" id="" required>
+
+                        <button id="loc"
+                            style="background-color:#313131;color: #cccaca;border-radius: 10px;padding: 5px;">Click to
+                            get your current Latitude and Longitude</button>
 
                     </div>
                     <div class="d-grid mt-3">
@@ -685,5 +691,21 @@
         </section>
     </div>
 </body>
+<script>
+    function getUserLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition);
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    }
+    function showPosition(position) {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+        alert(`Latitude ${userLat} and Longitude ${userLon}`);
+
+    }
+    document.getElementById("loc").addEventListener("click", getUserLocation);
+</script>
 
 </html>

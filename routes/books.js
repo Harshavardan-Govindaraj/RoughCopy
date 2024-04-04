@@ -3,22 +3,97 @@ var router = express.Router();
 var dbConn = require('../lib/db');
 const nodemailer = require("nodemailer");
 const session = require('express-session');
+let list = [];
+let userlati = 0;
+let querylat = 0;
+let smalldis = 9007199254740991;
 // display books page
 router.get('/', function (req, res, next) {
 
     dbConn.query('SELECT * FROM food', function (err, rows) {
         let flag = req.session.flag;
+        let city = req.session.city;
+        console.log(flag);
+        console.log(city);
         if (err) {
             req.flash('error', err);
             // render to views/books/index.ejs
 
-            res.render('books', { data: '', flag: '' });
+            res.render('books', { data: '', flag: '', city: '' });
         } else {
             // render to views/books/index.ejs
-            res.render('books', { data: rows, flag: flag });
+            res.render('books', { data: rows, flag: flag, city: city });
         }
     });
 });
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180; // Convert degrees to radians
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Distance in km
+    return distance;
+}
+// function getUserLocation() {
+//     if (global.navigator.geolocation) {
+//         global.navigator.geolocation.getCurrentPosition(showPosition);
+//     } else {
+//         alert("Geolocation is not supported by this browser.");
+//     }
+// }
+function showPosition(userLat, userLon) {
+
+    // Example destination addresses
+
+    // Convert addresses to coordinates using a geocoding service or API
+    // For simplicity, let's assume we already have the coordinates
+    for (let i = 0; i < list.length; i++) {
+        if (list[i].lat != null && list[i].log != null) {
+            const distanceToAddress = calculateDistance(userLat, userLon, list[i].lat, list[i].log);
+            if (distanceToAddress <= smalldis) {
+                smalldis = distanceToAddress;
+                querylat = list[i].lat;
+            }
+        }
+
+    }
+    console.log(querylat);
+    console.log(smalldis);
+    console.log("hereeeee");
+}
+router.get('/loc/(:city)/(:flag)', function (req, res, next) {
+    // render to add.ejs
+    let city = req.params.city;
+    let flag = req.params.flag;
+    console.log(city);
+
+    // dbConn.query(`SELECT * FROM food where city= '${city}' order by lat ASC LIMIT 1`, function (err, rows) {
+    dbConn.query('SELECT * FROM food', function (err, rows) {
+
+        for (let i = 0; i < rows.length; i++) {
+            let obj = {};
+            obj.lat = rows[i].lat;
+            obj.log = rows[i].log;
+            console.log(rows[i].lat);
+            console.log(rows[i].log);
+            list.push(obj);
+        }
+
+        console.log(list);
+        console.log(global.ulatitude, global.ulongitude);
+        showPosition(global.ulatitude, global.ulongitude);
+        dbConn.query(`SELECT * FROM food where lat BETWEEN '${querylat - 0.025}' AND '${querylat + 0.025}'  order by lat `, function (err, rows) {
+            console.log(`SELECT * FROM food where lat BETWEEN '${querylat - 0.025}' AND '${querylat + 0.025}'  order by lat `);
+            console.log("done");
+            res.render('books', { data: rows, flag: flag, city: city });
+        });
+
+    });
+})
 router.get('/history', function (req, res, next) {
 
     console.log(global.mail);
@@ -79,7 +154,10 @@ router.post('/login', function (req, res, next) {
             // })
 
             req.session.flag = rows[0].flag;
-            res.redirect('/books/display');
+            req.session.city = rows[0].city;
+            global.ulatitude = rows[0].lat;
+            global.ulongitude = rows[0].log;
+            res.redirect('/books');
         }
     })
 })
@@ -126,7 +204,7 @@ router.get('/about', function (req, res, next) {
     res.render('books/about')
 })
 
-// add a new book-------------------------------------------------------------------------------
+// add-------------------------------------------------------------------------------
 router.post('/add', function (req, res, next) {
 
     let name = req.body.myname1;
@@ -140,6 +218,8 @@ router.post('/add', function (req, res, next) {
     let issue_date = req.body.fooddate2;
     let expiry_date = req.body.fooddate3;
     let details = req.body.note;
+    let lat = req.body.lat;
+    let log = req.body.log;
     let errors = false;
     console.log(name);
     // if (nanameme.length === 0) {
@@ -163,6 +243,8 @@ router.post('/add', function (req, res, next) {
             phone_no: phone_no,
             address: address,
             city: city,
+            lat: lat,
+            log: log,
             category: category,
             quanity: quanity,
             preparation_date: preparation_date,
@@ -189,6 +271,7 @@ router.post('/add', function (req, res, next) {
             }
         })
         dbConn.query(`SELECT * FROM login WHERE city = '${city}' `, function (err, rows, fields) {
+
             if (err) throw err
             if (rows.length > 0) {
                 console.log("row exists");
@@ -208,7 +291,12 @@ router.post('/add', function (req, res, next) {
                     from: "admin",
                     to: rows[0].email,
                     subject: 'Food donation update',
-                    text: "Hey there ! Hope you are doing good . There is someone willing to donate food "
+                    text: `Hey there ! Hope you are doing good . There is someone willing to donate food
+                    Address : ${address} 
+                    Name : ${name}
+                    Phone number : ${phone_no}
+                    Issue Date : ${issue_date}
+                    Expiry date : ${expiry_date}`
                 }
 
                 transporter.sendMail(mailOptions, (error, info) => {
@@ -233,6 +321,8 @@ router.post('/userRegistration', function (req, res, next) {
     let email = req.body.email;
     let password = req.body.password;
     let city = req.body.city;
+    let lat = req.body.lat;
+    let log = req.body.log;
     let errors = false;
 
     if (!errors) {
@@ -242,7 +332,8 @@ router.post('/userRegistration', function (req, res, next) {
             email: email,
             password: password,
             city: city,
-
+            lat: lat,
+            log: log
         }
 
         // insert query
@@ -426,9 +517,46 @@ router.post('/update/:name', function (req, res, next) {
 })
 
 // delete book
-router.get('/delete/(:name)', function (req, res, next) {
-
+router.get('/delete/(:name)/(:city)', function (req, res, next) {
     let name = req.params.name;
+    let city = req.params.city;
+    console.log(city);
+    dbConn.query(`SELECT * FROM login WHERE city = '${city}' `, function (err, rows, fields) {
+        if (err) throw err
+        if (rows.length > 0) {
+            console.log("row exists");
+            console.log(rows[0].email);
+            console.log("done");
+            const transporter = nodemailer.createTransport(
+                {
+                    service: 'gmail',
+                    auth: {
+                        user: 'sanjumurugan2002@gmail.com',
+                        pass: 'ddrqhtauyjdawuqy'
+                    }
+
+                })
+
+            const mailOptions = {
+                from: "admin",
+                to: rows[0].email,
+                subject: 'Food Deletion Notification',
+                text: `Hey there ! Hope you are doing good . The food donation detail by ${name}  in your city is deleted`
+            }
+
+            transporter.sendMail(mailOptions, (error, info) => {
+
+                if (error) {
+                    console.log(error);
+                    res.send('error');
+                } else {
+                    console.log('Email sent: ' + info.response);
+                    res.send('success')
+                }
+
+            })
+        }
+    })
 
     dbConn.query('DELETE FROM food WHERE name = "' + name + '"', function (err, result) {
         //if(err) throw err

@@ -684,6 +684,9 @@
                 <a href="/books/contactdetail">Contact Us</a>
                 <a href="/books/login">Login</a>
                 <a href="/books/historyLogin">Your History</a>
+                <% if (flag==0) { %>
+                    <a href="/books/loc/<%=city%>/<%=flag%>">Food donor near you</a>
+                    <% } %>
 
             </li>
         </ul>
@@ -748,6 +751,8 @@
                             </td>
                             <td>
                                 <%= data[i].address%>
+
+                                    <a href="#" onclick="openLocationOnMap('<%=data[i].address%>')">Map</a>
                             </td>
 
                             <td>
@@ -769,7 +774,7 @@
                                 <td>
                                     <!-- <a class="btn btn-success edit" href="../books/edit/<%=data[i].name%>">Edit</a> -->
                                     <a class="btn btn-danger delete" onclick="return alert('Are You sure?')"
-                                        href="../books/delete/<%=data[i].name%>">Delete</a>
+                                        href="../books/delete/<%=data[i].name%>/<%=data[i].City%>">Delete</a>
                                 </td>
                                 <% } %>
                                     <% if (flag==0) { %>
@@ -792,7 +797,18 @@
 
                         <!-- </div> -->
     </div>
+    <script>
 
+        function openLocationOnMap(location) {
+            // Prompt the user to enter the location
+            // Construct the Google Maps URL with the location
+            console.log(location);
+            var mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(location);
+
+            // Open the URL in a new tab/window
+            window.open(mapsUrl, '_blank');
+        }
+    </script>
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src=" https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -802,6 +818,14 @@
         $(document).ready(function () {
             $("#example").DataTable();
         })
+
+
+
+
+        // if (flag == 0) {
+        //     document.getElementById("get").addEventListener("click", getnearby);
+        // }
+
     </script>
 
 
